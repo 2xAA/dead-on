@@ -1,4 +1,3 @@
-<br/>
 <p align="center" dir="auto">
   <img src="./DeadOn Logo.png" width="80%">
 </p>
@@ -42,7 +41,7 @@ In web-based audio and MIDI applications, precise timing is essential. Tradition
 
 - **Sample-accurate ticks:** Configurable PPQN delivers consistent timing at any musical resolution.
 - **Seamless tempo and resolution changes:** Update BPM or PPQN on the fly without dropping ticks.
-- **Unified scheduling base:** One clock for both Web Audio and Web MIDI, simplifying synchronization.
+- **Unified scheduling base:** One clock for both Web Audio and Web MIDI, simplifying synchronisation.
 - **Minimal setup:** Load the worklet in one line and subscribe to `"tick"` events with a clear API.
 - **TypeScript support:** Built-in type definitions for improved developer experience.
 
@@ -257,6 +256,38 @@ interface ClockTickEvent {
   tick: number; // integer tick count (0, 1, 2, ...)
   bpm: number; // current BPM
 }
+```
+
+### Understanding `scheduledTimeMs` (wall time)
+
+Wall-clock time refers to the browser’s high-resolution system clock, accessible via `performance.now()`, representing the real-world elapsed time since page load on the main JavaScript thread. The `scheduledTimeMs` property is such a high-resolution timestamp (in milliseconds) indicating **when** the tick was scheduled by the AudioWorklet. Because it runs on the main thread’s timing system (not the audio context’s), `scheduledTimeMs` lets you coordinate non-audio events or UI updates precisely at the tick moment. Use `scheduledTimeMs` to:
+
+- Synchronise UI updates or animations to the exact tick moment
+- Measure and log scheduling latency by comparing `scheduledTimeMs` against `performance.now()` on the main thread
+- Coordinate non-audio events (network calls, other JavaScript timers) with your audio timeline
+
+Example:
+
+```ts
+// Measure scheduling latency
+clock.on("tick", (e) => {
+  const now = performance.now();
+  console.log(`Tick latency: ${(now - e.scheduledTimeMs).toFixed(2)} ms`);
+});
+```
+
+```ts
+// Highlight a beat in the UI exactly on the tick
+clock.on("tick", (e) => {
+  const delay = e.scheduledTimeMs - performance.now();
+  const highlight = () =>
+    document.getElementById("beat-indicator")?.classList.add("active");
+  if (delay > 0) {
+    setTimeout(highlight, delay);
+  } else {
+    highlight();
+  }
+});
 ```
 
 ---
