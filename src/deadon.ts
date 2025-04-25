@@ -1,41 +1,40 @@
-import schedulerWorkletSource from './scheduler-processor.worklet.ts?raw';
+import schedulerWorkletSource from "./scheduler-processor.worklet.ts?raw";
 
 export interface DeadOnClockOptions {
   bpm: number;
   lookaheadMs?: number;
   audioContext?: AudioContext;
+  ppqn?: number;
 }
 
 export interface ClockTickEvent {
   scheduledTimeMs: number;
   audioTime: number;
   tick: number;
-  isQuarter: boolean;
-  isBar: boolean;
   bpm: number;
 }
 
-type EventType = "tick" | "quarter" | "bar";
+type EventType = "tick";
 type TickCallback = (e: ClockTickEvent) => void;
 
-export async function addDeadOnWorklet(audioContext: AudioContext) {
-  const blob = new Blob([schedulerWorkletSource], { type: "application/javascript" });
+async function addDeadOnWorklet(audioContext: AudioContext) {
+  const blob = new Blob([schedulerWorkletSource], {
+    type: "application/javascript",
+  });
   const url = URL.createObjectURL(blob);
   await audioContext.audioWorklet.addModule(url);
-  URL.revokeObjectURL(url);
 }
 
 export class DeadOnClock {
   private bpm: number;
   private lookaheadMs: number;
   private ctx: AudioContext;
+  private ppqn: number;
   private schedulerNode: AudioWorkletNode | null = null;
   private tickCount: number = 0;
   private _started: boolean = false;
   private listeners: Record<EventType, Set<TickCallback>> = {
     tick: new Set(),
-    quarter: new Set(),
-    bar: new Set(),
   };
   private timeOriginPerfNow: number = 0;
   private timeOriginAudioTime: number = 0;
@@ -48,21 +47,28 @@ export class DeadOnClock {
     this.bpm = opts.bpm;
     this.lookaheadMs = opts.lookaheadMs ?? 10;
     this.ctx = opts.audioContext ?? new AudioContext();
-    this.setupWorklet();
+    this.ppqn = opts.ppqn ?? 24;
   }
 
   private async setupWorklet() {
     await addDeadOnWorklet(this.ctx);
     this.schedulerNode = new AudioWorkletNode(this.ctx, "scheduler-processor", {
-      processorOptions: { bpm: this.bpm },
+      processorOptions: { bpm: this.bpm, ppqn: this.ppqn },
     });
   }
 
   async start() {
     if (this.started) return;
+    if (!this.schedulerNode) {
+      await this.setupWorklet();
+    }
+    this.tickCount = 0;
     this.timeOriginPerfNow = performance.now();
     this.timeOriginAudioTime = this.ctx.currentTime;
-    this.schedulerNode!.port.postMessage({ type: "start", time: this.timeOriginPerfNow });
+    this.schedulerNode!.port.postMessage({
+      type: "start",
+      time: this.timeOriginPerfNow,
+    });
     this.schedulerNode!.port.onmessage = (event) => {
       if (event.data.type === "tick") {
         this.handleTick(event.data.scheduledTime);
@@ -73,14 +79,36 @@ export class DeadOnClock {
   }
 
   stop() {
-    this.schedulerNode?.disconnect();
+    if (this.schedulerNode) {
+      this.schedulerNode.disconnect();
+      this.schedulerNode.port.onmessage = null;
+      this.schedulerNode = null;
+    }
     this._started = false;
-    this.tickCount = 0;
   }
 
   setBpm(bpm: number) {
     this.bpm = bpm;
-    this.schedulerNode?.port.postMessage({ type: "updateBPM", bpm });
+    // Re-base scheduling time origin at change
+    this.timeOriginPerfNow = performance.now();
+    this.timeOriginAudioTime = this.ctx.currentTime;
+    this.schedulerNode?.port.postMessage({
+      type: "updateBPM",
+      bpm,
+      time: this.timeOriginPerfNow,
+    });
+  }
+
+  public setPpqn(ppqn: number) {
+    this.ppqn = ppqn;
+    // Re-base scheduling time origin
+    this.timeOriginPerfNow = performance.now();
+    this.timeOriginAudioTime = this.ctx.currentTime;
+    this.schedulerNode?.port.postMessage({
+      type: "updatePPQN",
+      ppqn,
+      time: this.timeOriginPerfNow,
+    });
   }
 
   on(event: EventType, callback: TickCallback) {
@@ -92,25 +120,26 @@ export class DeadOnClock {
   }
 
   private handleTick(scheduledTimeMs: number) {
-    this.tickCount++;
     const e: ClockTickEvent = {
       scheduledTimeMs,
       audioTime: this.wallToAudioTime(scheduledTimeMs),
       tick: this.tickCount,
-      isQuarter: this.tickCount % 6 === 0,
-      isBar: this.tickCount % 24 === 0,
       bpm: this.bpm,
     };
+    this.tickCount++;
     for (const cb of this.listeners["tick"]) cb(e);
-    if (e.isQuarter) for (const cb of this.listeners["quarter"]) cb(e);
-    if (e.isBar) for (const cb of this.listeners["bar"]) cb(e);
   }
 
   wallToAudioTime(scheduledTimeMs: number): number {
-    return this.timeOriginAudioTime + (scheduledTimeMs - this.timeOriginPerfNow) / 1000;
+    return (
+      this.timeOriginAudioTime +
+      (scheduledTimeMs - this.timeOriginPerfNow) / 1000
+    );
   }
 
   audioToWallTime(audioTime: number): number {
-    return this.timeOriginPerfNow + (audioTime - this.timeOriginAudioTime) * 1000;
+    return (
+      this.timeOriginPerfNow + (audioTime - this.timeOriginAudioTime) * 1000
+    );
   }
 }
