@@ -1,9 +1,9 @@
 <br/>
-<center>
+<p align="center" dir="auto">
   <img src="./DeadOn Logo.png" width="80%">
-</center>
+</p>
 
-<br/><br/>
+<br/>
 
 # DeadOn
 
