@@ -1,3 +1,5 @@
+// Prevent multiple registrations of the AudioWorklet processor
+let workletRegistered = false;
 import schedulerWorkletSource from "./scheduler-processor.worklet.ts?raw";
 
 export interface DeadOnClockOptions {
@@ -18,6 +20,8 @@ type EventType = "tick";
 type TickCallback = (e: ClockTickEvent) => void;
 
 async function addDeadOnWorklet(audioContext: AudioContext) {
+  if (workletRegistered) return;
+  workletRegistered = true;
   const blob = new Blob([schedulerWorkletSource], {
     type: "application/javascript",
   });
