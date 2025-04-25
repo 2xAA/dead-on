@@ -19,6 +19,8 @@ With DeadOn, you get a unified timebase for scheduling Web Audio and Web MIDI ev
 - [Getting Started](#getting-started)
 - [Main Concepts](#main-concepts)
 - [Using `audioTime`](#using-audiotime)
+  - [Example: Scheduling Web Audio](#example-scheduling-web-audio)
+  - [Example: Scheduling Web MIDI](#example-scheduling-web-midi)
 - [Example: deriving quarter & bar](#example-deriving-quarter--bar)
 - [API Reference](#api-reference)
   - [`new DeadOnClock(opts)`](#new-deadonclockopts)
@@ -112,7 +114,7 @@ const clock = new DeadOnClock({
 
 The `audioTime` property is the exact `AudioContext.currentTime` (in seconds) when the tick occurs. This lets you schedule Web Audio or Web MIDI events with sample-accurate timing aligned to the audio engine.
 
-### Scheduling Web Audio
+### Example: Scheduling Web Audio
 
 You can use `audioTime` directly to start or stop oscillators, envelopes, or effects exactly on the tick:
 
@@ -129,7 +131,7 @@ clock.on("tick", (e) => {
 });
 ```
 
-### Scheduling Web MIDI
+### Example: Scheduling Web MIDI
 
 The Web MIDI API's `MIDIOutput.send()` accepts an optional timestamp in milliseconds (DOMHighResTimeStamp). To align MIDI messages to the same tick, convert `audioTime` to the corresponding performance timestamp:
 
@@ -168,6 +170,8 @@ clock.on("tick", (e) => {
 ```
 
 ---
+
+## API Reference
 
 ### `new DeadOnClock(opts)`
 
