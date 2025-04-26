@@ -5,7 +5,7 @@
 //   to schedule Web Audio events.
 
 let currentPpqn = 24;
-import { ClockTickEvent } from "./deadon";
+import { ClockTickEvent, DeadOnClock } from "./deadon";
 import { clock, ctx, bpmInputInit } from "./index";
 
 // Minor-9th chords
@@ -15,6 +15,10 @@ const chordOptions: number[][] = [
   [174.61, 207.65, 261.63, 311.13, 392.0, 466.16], // Fm9 (F–A♭–C–E♭–G–B♭)
   [196.0, 233.08, 293.66, 349.23, 440.0, 523.25], // Gm9 (G–B♭–D–F–A–C)
 ];
+
+// Primary UI colors
+const primaryColors: string[] = ["#c24a4a", "#c2864a", "#4ac286", "#4a86c2"];
+
 let selectedChord = 0;
 // Arpeggiator index
 let arpIndex = 0;
@@ -53,6 +57,28 @@ function updateStatsDisplay() {
   `;
 }
 
+const kickGain = ctx.createGain();
+const kickTime = 0.12;
+function playKick(audioTime: number, tick: number) {
+  const kick = ctx.createOscillator();
+  kick.frequency.value = 16.35 * 13;
+  kick.type = "square";
+  kick.frequency.linearRampToValueAtTime(0, audioTime + kickTime);
+  kickGain.gain.value = 0.5;
+  kickGain.gain.setTargetAtTime(0, audioTime, kickTime);
+
+  // low pass filter with high resonance
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.Q.value = 2;
+  filter.frequency.value = 500;
+  filter.frequency.linearRampToValueAtTime(16, audioTime + kickTime);
+
+  kick.connect(filter).connect(kickGain).connect(ctx.destination);
+  kick.start(audioTime);
+  kick.stop(audioTime + kickTime);
+}
+
 const blipGain = ctx.createGain();
 
 // WebAudio Schedulers
@@ -71,6 +97,8 @@ function playBlip(audioTime: number, tick: number) {
   osc.stop(audioTime + 0.04);
   blipGain.gain.setValueAtTime(0.07, audioTime);
   blipGain.gain.linearRampToValueAtTime(0, audioTime + 0.04);
+
+  playKick(audioTime, tick);
 }
 
 const chordGain = ctx.createGain();
@@ -161,12 +189,22 @@ export const quarterNoteActions = (e: ClockTickEvent) => {
   playBlip(e.audioTime, e.tick);
 };
 
+function setPrimaryColor(color: number) {
+  const root = document.documentElement;
+  root.style.setProperty("--primary-color", primaryColors[color]);
+}
+
 export const barActions = (e: ClockTickEvent) => {
   // Reset arpeggiator at the start of the bar
   arpIndex = 0;
   playChord(e.audioTime);
   // Advance to next chord
   selectedChord = (selectedChord + 1) % chordOptions.length;
+
+  const index =
+    (selectedChord + primaryColors.length - 1) % primaryColors.length;
+
+  DeadOnClock.scheduleAt(e.scheduledTimeMs, () => setPrimaryColor(index));
 };
 
 function resetStats() {

@@ -17,7 +17,7 @@ With DeadOn, you get a unified timebase for scheduling Web Audio and Web MIDI ev
 - [Why DeadOn?](#why-deadon)
 - [Getting Started](#getting-started)
 - [Main Concepts](#main-concepts)
-- [Using `audioTime`](#using-audiotime)
+- [Scheduling Events](#scheduling-events)
   - [Example: Scheduling Web Audio](#example-scheduling-web-audio)
   - [Example: Scheduling Web MIDI](#example-scheduling-web-midi)
 - [Example: deriving quarter & bar](#example-deriving-quarter--bar)
@@ -67,7 +67,6 @@ const audioCtx = new AudioContext();
 const clock = new DeadOnClock({
   bpm: 120, // starting tempo
   audioContext: audioCtx, // optional, defaults to new AudioContext()
-  lookaheadMs: 10, // optional scheduling lookahead (default 10ms)
   ppqn: 24, // pulses per quarter-note (default 24)
 });
 
@@ -104,14 +103,19 @@ const clock = new DeadOnClock({
   Each “tick” is emitted by the audio worklet at intervals of `(60 / (bpm * ppqn))` seconds.
 - **audioTime**  
   The `audioTime` property is the `AudioContext.currentTime` (in seconds) when the tick occurs, enabling sample-accurate scheduling.
+- **wall-clock (scheduledTimeMs)**  
+  The `scheduledTimeMs` property is a `performance.now()` timestamp (in ms) when the tick was scheduled. Use it with `DeadOnClock.scheduleAt()` to align UI updates, animations, or Web MIDI events exactly to the tick.
 - **Events**  
   DeadOn only emits `"tick"` events. Derive higher‑level musical timing (quarters, bars, steps) from the tick count in your application code.
 
 ---
 
-## Using `audioTime`
+## Scheduling Events
 
-The `audioTime` property is the exact `AudioContext.currentTime` (in seconds) when the tick occurs. This lets you schedule Web Audio or Web MIDI events with sample-accurate timing aligned to the audio engine.
+DeadOn provides two timing references on each tick:
+
+- **`audioTime`** (seconds): the `AudioContext.currentTime` for sample-accurate scheduling of Web Audio nodes.
+- **`scheduledTimeMs`** (ms): a high-resolution wall-clock timestamp (`performance.now()`) for scheduling UI, animations, or Web MIDI via `DeadOnClock.scheduleAt()`.
 
 ### Example: Scheduling Web Audio
 
@@ -132,15 +136,13 @@ clock.on("tick", (e) => {
 
 ### Example: Scheduling Web MIDI
 
-The Web MIDI API's `MIDIOutput.send()` accepts an optional timestamp in milliseconds (DOMHighResTimeStamp). To align MIDI messages to the same tick, convert `audioTime` to the corresponding performance timestamp:
+The Web MIDI API's `MIDIOutput.send()` accepts an optional timestamp in milliseconds (DOMHighResTimeStamp). To align MIDI messages to the same tick, use `e.scheduledTimeMs`:
 
 ```ts
 clock.on("tick", (e) => {
   if (e.tick % quarterTicks === 0) {
-    const nowMs = performance.now();
-    const scheduleTimeMs = nowMs + (e.audioTime - audioCtx.currentTime) * 1000;
     // Send a middle C note-on (0x90, note, velocity)
-    midiOutput.send([0x90, 60, 0x7f], scheduleTimeMs);
+    midiOutput.send([0x90, 60, 0x7f], e.scheduledTimeMs);
   }
 });
 ```
@@ -178,7 +180,6 @@ Creates a new scheduler. Options:
 
 - `bpm: number` — starting tempo
 - `audioContext?: AudioContext` — context for scheduling
-- `lookaheadMs?: number` — internal buffer in ms (default 10)
 - `ppqn?: number` — pulses‑per‑quarter‑note (default 24)
 
 ```ts
@@ -243,6 +244,26 @@ Unsubscribe from tick events.
 
 ```ts
 clock.off("tick", handler);
+```
+
+---
+
+### Helper: `scheduleAt`
+
+DeadOnClock includes a built-in static helper to schedule callbacks precisely at wall-clock times:
+
+```ts
+import { DeadOnClock } from "dead-on";
+
+const highlight = (beatIndex) => {
+  indicators.forEach((el) => (el.style.opacity = "0.3"));
+  indicators[beatIndex].style.opacity = "1";
+};
+
+clock.on("tick", (e) => {
+  const beatIndex = (e.tick / quarterTicks) % indicators.length;
+  DeadOnClock.scheduleAt(e.scheduledTimeMs, () => highlight(beatIndex));
+});
 ```
 
 ---

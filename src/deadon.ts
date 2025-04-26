@@ -4,7 +4,6 @@ import schedulerWorkletSource from "./scheduler-processor.worklet.ts?raw";
 
 export interface DeadOnClockOptions {
   bpm: number;
-  lookaheadMs?: number;
   audioContext?: AudioContext;
   ppqn?: number;
 }
@@ -31,7 +30,6 @@ async function addDeadOnWorklet(audioContext: AudioContext) {
 
 export class DeadOnClock {
   private bpm: number;
-  private lookaheadMs: number;
   private ctx: AudioContext;
   private ppqn: number;
   private schedulerNode: AudioWorkletNode | null = null;
@@ -49,7 +47,6 @@ export class DeadOnClock {
 
   constructor(opts: DeadOnClockOptions) {
     this.bpm = opts.bpm;
-    this.lookaheadMs = opts.lookaheadMs ?? 10;
     this.ctx = opts.audioContext ?? new AudioContext();
     this.ppqn = opts.ppqn ?? 24;
   }
@@ -145,5 +142,19 @@ export class DeadOnClock {
     return (
       this.timeOriginPerfNow + (audioTime - this.timeOriginAudioTime) * 1000
     );
+  }
+
+  /**
+   * Schedule a callback at the precise wall-clock time.
+   * @param timestampMs - target time in milliseconds on the performance.now() timeline
+   * @param callback - function to invoke at that time (or immediately if timestampMs is in the past)
+   */
+  public static scheduleAt(timestampMs: number, callback: () => void) {
+    const delay = timestampMs - performance.now();
+    if (delay > 0) {
+      setTimeout(callback, delay);
+    } else {
+      callback();
+    }
   }
 }

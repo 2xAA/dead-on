@@ -8,7 +8,10 @@ import {
 
 export const bpmInputInit = 120;
 export const ctx = new AudioContext();
-export const clock = new DeadOnClock({ bpm: bpmInputInit, audioContext: ctx });
+export const clock = new DeadOnClock({
+  bpm: bpmInputInit,
+  audioContext: ctx,
+});
 
 // Grab the four indicators after the DOM is created
 const indicators = Array.from(
@@ -39,13 +42,8 @@ clock.on("tick", (e) => {
 
     // Schedule indicator highlight at the precise tick time
     const beatIndex = (e.tick / ppqn) % indicators.length;
-    const delay = e.scheduledTimeMs - performance.now();
 
-    if (delay > 0) {
-      setTimeout(() => highlight(beatIndex), delay);
-    } else {
-      highlight(beatIndex);
-    }
+    DeadOnClock.scheduleAt(e.scheduledTimeMs, () => highlight(beatIndex));
   }
 
   // Every bar (4 quarters)
