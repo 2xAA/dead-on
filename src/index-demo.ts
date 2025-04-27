@@ -4,7 +4,7 @@ import {
   barActions,
   sixteenthNoteActions,
   getCurrentPpqn,
-} from "./other";
+} from "./index-demo-other";
 
 export const bpmInputInit = 120;
 export const ctx = new AudioContext();
@@ -43,7 +43,7 @@ clock.on("tick", (e) => {
     // Schedule indicator highlight at the precise tick time
     const beatIndex = (e.tick / ppqn) % indicators.length;
 
-    DeadOnClock.scheduleAt(e.scheduledTimeMs, () => highlight(beatIndex));
+    DeadOnClock.scheduleAt(() => highlight(beatIndex), e.scheduledTimeMs);
   }
 
   // Every bar (4 quarters)

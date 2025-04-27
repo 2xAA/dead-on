@@ -1,4 +1,10 @@
 class SchedulerProcessor extends AudioWorkletProcessor {
+  bpm: number;
+  ppqn: number;
+  currentSample: number;
+  tickCount: number;
+  startTimeMs: number;
+
   get tickIntervalSec() {
     return 60 / (this.bpm * this.ppqn);
   }
@@ -7,8 +13,8 @@ class SchedulerProcessor extends AudioWorkletProcessor {
     return this.tickIntervalSec * sampleRate;
   }
 
-  constructor(options) {
-    super(options);
+  constructor(options: { processorOptions: { bpm?: number; ppqn?: number } }) {
+    super();
     this.bpm = options.processorOptions.bpm || 120;
     this.ppqn = options.processorOptions.ppqn || 24;
     this.currentSample = 0;
@@ -40,13 +46,16 @@ class SchedulerProcessor extends AudioWorkletProcessor {
     };
   }
 
-  process(_inputs, outputs) {
-    const blockSize = outputs[0]?.[0]?.length || 128;
+  process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    const blockSize: number = outputs[0]?.[0]?.length || 128;
     this.currentSample += blockSize;
+
     while (this.currentSample >= this.samplesPerTick) {
       this.currentSample -= this.samplesPerTick;
-      const scheduledTime =
+
+      const scheduledTime: number =
         this.startTimeMs + this.tickCount * this.tickIntervalSec * 1000;
+
       this.port.postMessage({ type: "tick", scheduledTime });
       this.tickCount++;
     }

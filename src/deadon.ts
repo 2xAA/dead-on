@@ -1,6 +1,6 @@
 // Prevent multiple registrations of the AudioWorklet processor
 let workletRegistered = false;
-import schedulerWorkletSource from "./scheduler-processor.worklet.ts?raw";
+import schedulerWorkletUrl from "./scheduler-processor.worklet.ts?url";
 
 export interface DeadOnClockOptions {
   bpm: number;
@@ -20,18 +20,14 @@ type TickCallback = (e: ClockTickEvent) => void;
 
 async function addDeadOnWorklet(audioContext: AudioContext) {
   if (workletRegistered) return;
+  await audioContext.audioWorklet.addModule(schedulerWorkletUrl);
   workletRegistered = true;
-  const blob = new Blob([schedulerWorkletSource], {
-    type: "application/javascript",
-  });
-  const url = URL.createObjectURL(blob);
-  await audioContext.audioWorklet.addModule(url);
 }
 
 export class DeadOnClock {
-  private bpm: number;
+  private _bpm: number;
   private ctx: AudioContext;
-  private ppqn: number;
+  private _ppqn: number;
   private schedulerNode: AudioWorkletNode | null = null;
   private tickCount: number = 0;
   private _started: boolean = false;
@@ -45,10 +41,18 @@ export class DeadOnClock {
     return this._started;
   }
 
+  get ppqn() {
+    return this._ppqn;
+  }
+
+  get bpm() {
+    return this._bpm;
+  }
+
   constructor(opts: DeadOnClockOptions) {
-    this.bpm = opts.bpm;
+    this._bpm = opts.bpm;
     this.ctx = opts.audioContext ?? new AudioContext();
-    this.ppqn = opts.ppqn ?? 24;
+    this._ppqn = opts.ppqn ?? 24;
   }
 
   private async setupWorklet() {
@@ -89,7 +93,7 @@ export class DeadOnClock {
   }
 
   setBpm(bpm: number) {
-    this.bpm = bpm;
+    this._bpm = bpm;
     // Re-base scheduling time origin at change
     this.timeOriginPerfNow = performance.now();
     this.timeOriginAudioTime = this.ctx.currentTime;
@@ -101,7 +105,7 @@ export class DeadOnClock {
   }
 
   public setPpqn(ppqn: number) {
-    this.ppqn = ppqn;
+    this._ppqn = ppqn;
     // Re-base scheduling time origin
     this.timeOriginPerfNow = performance.now();
     this.timeOriginAudioTime = this.ctx.currentTime;
@@ -146,10 +150,10 @@ export class DeadOnClock {
 
   /**
    * Schedule a callback at the precise wall-clock time.
-   * @param timestampMs - target time in milliseconds on the performance.now() timeline
    * @param callback - function to invoke at that time (or immediately if timestampMs is in the past)
+   * @param timestampMs - target time in milliseconds on the performance.now() timeline
    */
-  public static scheduleAt(timestampMs: number, callback: () => void) {
+  public static scheduleAt(callback: () => void, timestampMs: number) {
     const delay = timestampMs - performance.now();
     if (delay > 0) {
       setTimeout(callback, delay);

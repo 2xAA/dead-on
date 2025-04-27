@@ -22,6 +22,12 @@
       margin: 0;
     }
 
+    hr {
+      border: 0;
+      border-top: 1px solid #ffffff;
+      margin: 1rem 0;
+    }
+
     .container {
       background: var(--primary-color);
       transition: background 0.3s var(--transition-curve);
@@ -41,7 +47,6 @@
     .controls {
       display: flex;
       justify-content: center;
-      margin-bottom: 1rem;
       margin: 0.5rem 0;
     }
 
@@ -101,7 +106,8 @@
       height: 20px;
       background: #ffffff;
       border-radius: 50%;
-      opacity: 0.3;
+      opacity: 0.2;
+      transition: opacity 0.3s var(--transition-curve);
     }
 
     /* Styled range slider */
@@ -158,8 +164,12 @@
 <body>
   <div class="container">
     <img src="./DeadOn Logo.svg" alt="DeadOn Logo" width="80%">
-    <h1>Clock Demo</h1>
-    <a href="sequencer.html" style="color: #ffffff; text-decoration: none; font-size: 0.8rem;">Go to Sequencer</a>
+    <hr>
+    <h1>Sequencer Demo</h1>
+    <a href="index.html" style="color: #ffffff; text-decoration: none; font-size: 0.8rem;">Go to Clock</a><br>
+    <a href="https://startling-blini-feb1b3.netlify.app/" target="_blank"
+      style="color: #ffffff; text-decoration: none; font-size: 0.8rem;">Measure MIDI clock accuracy</a>
+    <hr>
     <div class="settings">
       <label>BPM: <input id="bpm" type="number" value="120" min="20" max="300" step="1"></label>
       <div class="controls">
@@ -173,16 +183,31 @@
           <option value="960">960 (DAW)</option>
         </select>
       </label>
+      <label>MIDI Out:
+        <select id="midiOut"></select>
+      </label>
     </div>
     <div id="stats"></div>
     <div id="beat-indicator-container" style="display:flex;justify-content:space-around;margin-top:1em;">
-      <div class="beat-indicator" id="beat-0"></div>
-      <div class="beat-indicator" id="beat-1"></div>
-      <div class="beat-indicator" id="beat-2"></div>
-      <div class="beat-indicator" id="beat-3"></div>
+      <div class="beat-indicator" id="step-1"></div>
+      <div class="beat-indicator" id="step-2"></div>
+      <div class="beat-indicator" id="step-3"></div>
+      <div class="beat-indicator" id="step-4"></div>
+      <div class="beat-indicator" id="step-5"></div>
+      <div class="beat-indicator" id="step-6"></div>
+      <div class="beat-indicator" id="step-7"></div>
+      <div class="beat-indicator" id="step-8"></div>
+      <div class="beat-indicator" id="step-9"></div>
+      <div class="beat-indicator" id="step-10"></div>
+      <div class="beat-indicator" id="step-11"></div>
+      <div class="beat-indicator" id="step-12"></div>
+      <div class="beat-indicator" id="step-13"></div>
+      <div class="beat-indicator" id="step-14"></div>
+      <div class="beat-indicator" id="step-15"></div>
+      <div class="beat-indicator" id="step-16"></div>
     </div>
   </div>
-  <script type="module" src="./index-demo.ts"></script>
+  <script type="module" src="./sequencer-demo.ts"></script>
 </body>
 
 </html>

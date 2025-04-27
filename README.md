@@ -30,7 +30,7 @@ With DeadOn, you get a unified timebase for scheduling Web Audio and Web MIDI ev
   - [`clock.on('tick', callback)`](#clockontick-callback)
   - [`clock.off('tick', callback)`](#clockofftick-callback)
 - [ClockTickEvent](#clocktickevent)
-- [Browser Support](#browser-support)
+- [`DeadOnSequencer`](#deadonsequencer)
 - [License](#license)
 
 ---
@@ -44,6 +44,7 @@ In web-based audio and MIDI applications, precise timing is essential. Tradition
 - **Unified scheduling base:** One clock for both Web Audio and Web MIDI, simplifying synchronisation.
 - **Minimal setup:** Load the worklet in one line and subscribe to `"tick"` events with a clear API.
 - **TypeScript support:** Built-in type definitions for improved developer experience.
+- **Built-in Sequencer:** A small `DeadOnSequencer` class for latency‑free step sequencing with tick-aligned +/- ms offsets, subdivisions, and pattern management.
 
 DeadOn abstracts low-level scheduling details, allowing you to focus on building your audio and MIDI logic.
 
@@ -262,7 +263,7 @@ const highlight = (beatIndex) => {
 
 clock.on("tick", (e) => {
   const beatIndex = (e.tick / quarterTicks) % indicators.length;
-  DeadOnClock.scheduleAt(e.scheduledTimeMs, () => highlight(beatIndex));
+  DeadOnClock.scheduleAt(() => highlight(beatIndex), e.scheduledTimeMs);
 });
 ```
 
@@ -313,10 +314,111 @@ clock.on("tick", (e) => {
 
 ---
 
-## Browser Support
+## DeadOnSequencer
 
-- Chrome, Edge, Safari, Firefox (latest)
-- Requires Web Audio `AudioWorkletProcessor`
+A helper class for building fixed-length, latency‑free step sequences on top of DeadOnClock. Precomputes step actions (notes, chords, or arpeggios) into a tick→payload map for O(1) lookup on each clock tick.
+
+### Installation
+
+```bash
+# DeadOnSequencer is bundled with dead-on
+npm install @2xAA/deadon
+```
+
+### Import
+
+```ts
+import { DeadOnSequencer, StepAction } from "dead-on";
+```
+
+### Constructor
+
+```ts
+constructor(
+  clock: DeadOnClock,
+  steps?: number,       // number of steps per bar (default 16)
+  ppqn?: number,        // pulses per quarter-note (default clock.ppqn)
+  bpm?: number          // tempo in BPM (default clock.bpm)
+)
+```
+
+- **`clock`**: an instance of `DeadOnClock`.
+- **`steps`**: total steps per cycle (e.g. 16 for a 16-step sequencer).
+- **`ppqn`**: resolution in pulses‑per‑quarter‑note.
+- **`bpm`**: tempo, used for converting ms offsets.
+
+### `StepAction<P>`
+
+Defines what happens at a given step index:
+
+```ts
+interface StepAction<P> {
+  payload: P[]; // one or more values to schedule
+  subdivs?: number; // subdivisions per step (default 0)
+  offsetMs?: number; // offset in milliseconds (can also be in the past!)
+}
+```
+
+- **`payload`** may be any data (e.g. frequencies, MIDI notes, UI events).
+- **`subdivs`** controls hits-per-step; `0` fires all payloads simultaneously.
+- **`offsetMs`** shifts events forward or backward in time.
+
+### Methods
+
+- `setSequence(seq: Array<StepAction<P> | null>)`  
+  Replace the entire step sequence (length must equal `steps`).
+- `setStep(step: number, action: StepAction<P> | null)`  
+  Set or clear a single step’s action.
+- `clearStep(step: number)`  
+  Shortcut for `setStep(step, null)`.
+- `clearSequence()`  
+  Clears all steps.
+- `setPpqn(ppqn: number)`  
+  Change resolution and rebuild schedule.
+- `setBpm(bpm: number)`  
+  Change tempo and rebuild schedule.
+- `setDivision(div: number)`  
+  Speed up or slow down the entire sequence by an integer factor.
+- `getPayloadsForTick(tick: number): P[]`  
+  Returns the array of payload items scheduled on a given global tick.
+
+### Example
+
+```ts
+import { DeadOnClock, DeadOnSequencer } from "dead-on";
+
+// 1) Setup clock
+await addDeadOnWorklet(audioCtx);
+const clock = new DeadOnClock({ bpm: 120, audioContext: audioCtx, ppqn: 24 });
+
+// 2) Build a 16-step sequencer
+const seq = new DeadOnSequencer(clock, 16);
+
+// 3) Define a simple pattern: a 2-note chord on step 0
+type Note = { freq: number; durationMs: number };
+const pattern: Array<StepAction<Note> | null> = Array(16).fill(null);
+pattern[0] = {
+  payload: [
+    { freq: 440, durationMs: 200 },
+    { freq: 554.37, durationMs: 200 },
+  ],
+  subdivs: 0, // fire both notes simultaneously
+  offsetMs: 10, // 10ms delay
+};
+seq.setSequence(pattern);
+
+// 4) On each tick, play Web Audio at exactly the right time
+clock.on("tick", (e) => {
+  const payloads = seq.getPayloadsForTick(e.tick);
+  for (const note of payloads) {
+    const start = e.audioTime;
+    // schedule oscillator here using start and note.durationMs...
+  }
+});
+
+// 5) Start the clock
+await clock.start();
+```
 
 ---
 

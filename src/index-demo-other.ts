@@ -2,11 +2,11 @@
 // It's mostly just a bunch of code that's used to make the demo work.
 // ---
 // Focus on playBlip and playChord - they show how to use e.audioTime
-//   to schedule Web Audio events.
+// to schedule Web Audio events.
 
 let currentPpqn = 24;
 import { ClockTickEvent, DeadOnClock } from "./deadon";
-import { clock, ctx, bpmInputInit } from "./index";
+import { clock, ctx } from "./index-demo";
 
 // Minor-9th chords
 const chordOptions: number[][] = [
@@ -31,7 +31,7 @@ let tickSum = 0;
 let tickSumSq = 0;
 let tickCount = 0;
 let accurateTicks = 0;
-let bpm = bpmInputInit;
+let bpm = 120;
 
 function getTargetTick() {
   return (60 / (bpm * currentPpqn)) * 1000;
@@ -204,7 +204,7 @@ export const barActions = (e: ClockTickEvent) => {
   const index =
     (selectedChord + primaryColors.length - 1) % primaryColors.length;
 
-  DeadOnClock.scheduleAt(e.scheduledTimeMs, () => setPrimaryColor(index));
+  DeadOnClock.scheduleAt(() => setPrimaryColor(index), e.scheduledTimeMs);
 };
 
 function resetStats() {
