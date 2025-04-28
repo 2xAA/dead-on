@@ -4,11 +4,12 @@ import {
   barActions,
   sixteenthNoteActions,
   getCurrentPpqn,
+  setup,
 } from "./index-demo-other";
 
 export const bpmInputInit = 120;
-export const ctx = new AudioContext();
-export const clock = new DeadOnClock({
+const ctx = new AudioContext();
+const clock = new DeadOnClock({
   bpm: bpmInputInit,
   audioContext: ctx,
 });
@@ -51,3 +52,5 @@ clock.on("tick", (e) => {
     barActions(e);
   }
 });
+
+setup(clock, ctx);

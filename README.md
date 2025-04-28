@@ -55,7 +55,7 @@ DeadOn abstracts low-level scheduling details, allowing you to focus on building
 Install via npm:
 
 ```bash
-npm install @2xAA/deadon
+npm install dead-on
 ```
 
 Load the worklet and create a clock:
@@ -322,7 +322,7 @@ A helper class for building fixed-length, latency‑free step sequences on top o
 
 ```bash
 # DeadOnSequencer is bundled with dead-on
-npm install @2xAA/deadon
+npm install dead-on
 ```
 
 ### Import
