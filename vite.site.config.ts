@@ -7,7 +7,7 @@ export default defineConfig({
   publicDir: "public",
   build: {
     outDir: path.resolve(__dirname, "dist"),
-    emptyOutDir: false,
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         index: path.resolve(__dirname, "src", "index.html"),

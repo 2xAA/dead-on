@@ -1,6 +1,6 @@
 // Prevent multiple registrations of the AudioWorklet processor
 let workletRegistered = false;
-import schedulerWorkletUrl from "./scheduler-processor.worklet.ts?worker&url";
+import schedulerWorkletUrl from "./scheduler-processor.worklet.ts?url";
 
 export interface DeadOnClockOptions {
   bpm: number;
