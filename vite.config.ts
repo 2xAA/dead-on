@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 import path from "path";
+import { audioWorkletInlinePlugin } from "./audio-worklet-inline.vite.plugin";
 
 export default defineConfig({
+  plugins: [audioWorkletInlinePlugin()],
   // during `npm run dev` serve from src/
   root: path.resolve(__dirname, "src"),
   // make all asset imports relative to index.html
