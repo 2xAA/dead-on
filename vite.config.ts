@@ -1,13 +1,11 @@
 import { defineConfig } from "vite";
 import path from "path";
 import dts from "vite-plugin-dts";
-import { audioWorkletInlinePlugin } from "./audio-worklet-inline.vite.plugin";
 
 export default defineConfig({
   plugins: [
-    audioWorkletInlinePlugin(),
     dts({
-      outputDir: path.resolve(__dirname, "dist/types"),
+      outDir: path.resolve(__dirname, "dist/types"),
       insertTypesEntry: true,
     }),
   ],

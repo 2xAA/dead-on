@@ -236,7 +236,7 @@ export class DeadOnSequencer<P = any> {
    * @param midiOut        MIDIOutput to send messages on
    * @param note           MIDI note number
    * @param velocity       MIDI velocity (0–127)
-   * @param startTimeMs    performance.now() timestamp to send note-on
+   * @param startTimeMs    DOMHighResTimeStamp timestamp to send note-on
    * @param durationMs     milliseconds until note-off (default 100ms)
    */
   public static triggerMidi(
@@ -244,26 +244,13 @@ export class DeadOnSequencer<P = any> {
     note: number,
     velocity: number,
     startTimeMs: number,
-    durationMs: number = 100
+    offTimestampMs: number = 100
   ) {
-    midiOut.send([0x90, note, velocity], startTimeMs);
-    midiOut.send([0x80, note, 0x00], startTimeMs + durationMs);
-  }
+    // ensure the on-time isn't in the past relative to performance.now()
+    const nowMs = performance.now();
+    const onTimeMs = Math.max(startTimeMs, nowMs);
 
-  /**
-   * Schedule paired start and stop callbacks at precise wall-clock times.
-   * @param startTimeMs    performance.now() timestamp to invoke startCb
-   * @param durationMs     milliseconds until invoking stopCb
-   * @param startCb        function to call at startTimeMs
-   * @param stopCb         function to call at startTimeMs + durationMs
-   */
-  public static triggerStartStop(
-    startTimeMs: number,
-    durationMs: number,
-    startCb: () => void,
-    stopCb?: () => void
-  ) {
-    DeadOnClock.scheduleAt(startCb, startTimeMs);
-    stopCb && DeadOnClock.scheduleAt(stopCb, startTimeMs + durationMs);
+    midiOut.send([0x90, note, velocity], onTimeMs);
+    midiOut.send([0x80, note, 0x00], offTimestampMs);
   }
 }

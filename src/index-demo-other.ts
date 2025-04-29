@@ -24,6 +24,7 @@ const primaryColors: string[] = ["#c24a4a", "#c2864a", "#4ac286", "#4a86c2"];
 let arpIndex = 0;
 let playArp: (audioTime: number, freq: number) => void;
 let playBlip: (audioTime: number, tick: number) => void;
+let playKick: (audioTime: number, tick: number) => void;
 let playChord: (audioTime: number) => void;
 
 function setPrimaryColor(color: number) {
@@ -31,7 +32,11 @@ function setPrimaryColor(color: number) {
   root.style.setProperty("--primary-color", primaryColors[color]);
 }
 
+let _clock: DeadOnClock | null = null;
+
 export function setup(clock: DeadOnClock, ctx: AudioContext) {
+  _clock = clock;
+
   // Stats setup
   let lastTickTime: number | null = null;
   let minTick = Infinity;
@@ -68,7 +73,7 @@ export function setup(clock: DeadOnClock, ctx: AudioContext) {
 
   const kickGain = ctx.createGain();
   const kickTime = 0.12;
-  function playKick(audioTime: number, tick: number) {
+  playKick = (audioTime: number, tick: number) => {
     const kick = ctx.createOscillator();
     kick.frequency.value = 16.35 * 13;
     kick.type = "square";
@@ -86,7 +91,7 @@ export function setup(clock: DeadOnClock, ctx: AudioContext) {
     kick.connect(filter).connect(kickGain).connect(ctx.destination);
     kick.start(audioTime);
     kick.stop(audioTime + kickTime);
-  }
+  };
 
   const blipGain = ctx.createGain();
 
@@ -106,8 +111,6 @@ export function setup(clock: DeadOnClock, ctx: AudioContext) {
     osc.stop(audioTime + 0.04);
     blipGain.gain.setValueAtTime(0.07, audioTime);
     blipGain.gain.linearRampToValueAtTime(0, audioTime + 0.04);
-
-    playKick(audioTime, tick);
   };
 
   const chordGain = ctx.createGain();
@@ -168,9 +171,9 @@ export function setup(clock: DeadOnClock, ctx: AudioContext) {
   };
 
   // DeadOn clock event handlers
-  clock.on("tick", (e) => {
+  clock.on("tick", ({ timeMs }) => {
     if (lastTickTime !== null) {
-      const tickMs = e.scheduledTimeMs - lastTickTime;
+      const tickMs = timeMs - lastTickTime;
       tickSum += tickMs;
       tickSumSq += tickMs * tickMs;
       if (Math.abs(tickMs - getTargetTick()) < 0.1) accurateTicks++;
@@ -179,7 +182,7 @@ export function setup(clock: DeadOnClock, ctx: AudioContext) {
       tickCount++;
       updateStatsDisplay();
     }
-    lastTickTime = e.scheduledTimeMs;
+    lastTickTime = timeMs;
   });
 
   function resetStats() {
@@ -240,7 +243,9 @@ export const sixteenthNoteActions = (e: ClockTickEvent) => {
 };
 
 export const quarterNoteActions = (e: ClockTickEvent) => {
+  console.log(e.audioTime * 1000, e.timeMs, performance.now());
   playBlip(e.audioTime, e.tick);
+  playKick(e.audioTime, e.tick);
 };
 
 export const barActions = (e: ClockTickEvent) => {
@@ -253,7 +258,7 @@ export const barActions = (e: ClockTickEvent) => {
   const index =
     (selectedChord + primaryColors.length - 1) % primaryColors.length;
 
-  DeadOnClock.scheduleAt(() => setPrimaryColor(index), e.scheduledTimeMs);
+  _clock!.scheduleAt(() => setPrimaryColor(index), e.timeMs);
 };
 
 export const getCurrentPpqn = () => currentPpqn;

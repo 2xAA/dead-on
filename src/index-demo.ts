@@ -44,7 +44,7 @@ clock.on("tick", (e) => {
     // Schedule indicator highlight at the precise tick time
     const beatIndex = (e.tick / ppqn) % indicators.length;
 
-    DeadOnClock.scheduleAt(() => highlight(beatIndex), e.scheduledTimeMs);
+    clock.scheduleAt(() => highlight(beatIndex), e.timeMs);
   }
 
   // Every bar (4 quarters)

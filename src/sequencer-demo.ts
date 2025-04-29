@@ -156,52 +156,22 @@ import { initDemoEnv } from "./sequencer-demo-other";
     Array(16).fill(null);
 
   midiPattern[0] = {
-    payload: [
-      { midiNote: 60, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 64, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 67, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 72, velocity: 0x7f, durationMs: 200 },
-    ],
+    payload: [{ midiNote: 60, velocity: 0x7f, durationMs: 200 }],
     subdivs: 0,
   };
 
-  midiPattern[3] = {
-    payload: [
-      { midiNote: 60, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 64, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 67, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 72, velocity: 0x7f, durationMs: 200 },
-    ],
-    subdivs: 1,
-  };
-
-  midiPattern[6] = {
-    payload: [
-      { midiNote: 60, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 64, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 67, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 72, velocity: 0x7f, durationMs: 200 },
-    ],
+  midiPattern[4] = {
+    payload: [{ midiNote: 60, velocity: 0x7f, durationMs: 200 }],
     subdivs: 0,
   };
 
-  midiPattern[9] = {
-    payload: [
-      { midiNote: 60, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 64, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 67, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 72, velocity: 0x7f, durationMs: 200 },
-    ],
+  midiPattern[8] = {
+    payload: [{ midiNote: 60, velocity: 0x7f, durationMs: 200 }],
     subdivs: 0,
   };
 
   midiPattern[12] = {
-    payload: [
-      { midiNote: 60, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 64, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 67, velocity: 0x7f, durationMs: 200 },
-      { midiNote: 70, velocity: 0x7f, durationMs: 200 },
-    ],
+    payload: [{ midiNote: 60, velocity: 0x7f, durationMs: 200 }],
     subdivs: 0,
   };
 
@@ -211,17 +181,17 @@ import { initDemoEnv } from "./sequencer-demo-other";
   clock.on("tick", (e) => {
     // Send MIDI Clock messages at MIDI ppqn (24 pulses per quarter)
     if (midiOutput && e.tick % midiInterval === 0) {
-      midiOutput.send([0xf8], e.scheduledTimeMs);
+      midiOutput.send([0xf8], e.timeMs);
     }
 
     // UI quarter-beat indicator sync
     if (e.tick % (clock.ppqn / 4) === 0) {
       const beatIndex = (e.tick / (clock.ppqn / 4)) % indicators.length;
-      DeadOnClock.scheduleAt(() => {
+      clock.scheduleAt(() => {
         indicators.forEach((el, i) => {
           el.style.opacity = i === beatIndex ? "1" : "0.2";
         });
-      }, e.scheduledTimeMs);
+      }, e.timeMs);
     }
 
     for (let ch = 0; ch < 16; ch++) {
@@ -275,8 +245,8 @@ import { initDemoEnv } from "./sequencer-demo-other";
             midiOutput,
             midiNote,
             velocity,
-            e.scheduledTimeMs,
-            durationMs
+            e.timeMs,
+            e.timeMs + durationMs
           );
         }
       }
