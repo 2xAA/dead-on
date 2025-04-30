@@ -6,7 +6,7 @@
 
 # DeadOn
 
-DeadOn is a drift-less, performance.now()–based clock for precision musical timing in web applications. It emits sample-accurate ticks at a configurable pulses-per-quarter-note (PPQN) resolution, making it ideal for synchronising Web Audio, Web MIDI, UI updates, or any custom scheduling needs.
+DeadOn is a drift-less, performance.now()–based clock for precision musical timing in web applications. It emits millisecond-accurate ticks at a configurable PPQN resolution, making it ideal for synchronising Web Audio, Web MIDI, UI updates, or other precise scheduling needs.
 
 ---
 
