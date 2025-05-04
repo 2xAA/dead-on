@@ -23,7 +23,8 @@ import { DeadOnClock } from "./deadon";
 export interface StepAction<P = any> {
   payload: P[]; // one or more items to play
   subdivs?: number; // hits per step (default 1)
-  offsetMs?: number; // humanization offset
+  offsetTick?: number | null;
+  offsetMs?: number | null; // humanization offset
 }
 
 /**
@@ -173,7 +174,11 @@ export class DeadOnSequencer<P = any> {
       const subdivs = action.subdivs ?? 0;
       const msPerTick = this.secPerTick * 1000;
       const offsetTicks =
-        action.offsetMs != null ? Math.round(action.offsetMs / msPerTick) : 0;
+        action.offsetTick != null && action.offsetTick > 0
+          ? Math.round(action.offsetTick)
+          : action.offsetMs != null
+          ? Math.round(action.offsetMs / msPerTick)
+          : 0;
 
       // If subdivs is zero, play all payloads simultaneously
       if (subdivs === 0) {
