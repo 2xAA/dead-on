@@ -1,5 +1,3 @@
-// midi-clock.ts
-
 export type ClockTickEvent = {
   audioTime: number; // in seconds
   timeMs: DOMHighResTimeStamp;
