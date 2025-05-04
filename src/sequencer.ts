@@ -1,3 +1,5 @@
+import { DeadOnClock } from "./deadon";
+
 /**
  * Unified note payload for Web Audio, Web MIDI, or UI callbacks.
  * - freq?: frequency in Hz (Web Audio)
@@ -13,8 +15,6 @@ export interface NotePayload {
   durationMs?: number;
   uiCallback?: () => void;
 }
-// src/DeadOnSequencer.ts
-import { DeadOnClock } from "./deadon";
 
 /**
  * A step action: any array of payloads scheduled across the zone from this step
