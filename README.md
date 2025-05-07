@@ -164,6 +164,8 @@ pattern[0] = {
 };
 
 seq.setSequence(pattern);
+// Adjust playback speed (e.g. half-speed)
+seq.setSpeedFactor(0.5);
 
 // Play payloads on each tick
 clock.on("tick", (e) => {
@@ -187,17 +189,17 @@ interface StepAction<P> {
 
 ### Methods
 
-| Method                              | Description                                   |
-| ----------------------------------- | --------------------------------------------- |
-| `new DeadOnSequencer(clock, steps)` | Create a sequencer with given number of steps |
-| `seq.setSequence(seq)`              | Replace entire sequence at once               |
-| `seq.setStep(step, action)`         | Set or clear a single step                    |
-| `seq.clearSequence()`               | Clear all steps                               |
-| `seq.clearStep(step)`               | Clear a specific step                         |
-| `seq.setBpm(bpm)`                   | Change sequencer tempo                        |
-| `seq.setPpqn(ppqn)`                 | Change sequencer resolution                   |
-| `seq.setDivision(div)`              | Speed up/slow down playback (1 = normal)      |
-| `seq.getPayloadsForTick(tick)`      | Get payloads scheduled on a given tick        |
+| Method                              | Description                                                                         |
+| ----------------------------------- | ----------------------------------------------------------------------------------- |
+| `new DeadOnSequencer(clock, steps)` | Create a sequencer with given number of steps                                       |
+| `seq.setSequence(seq)`              | Replace entire sequence at once                                                     |
+| `seq.setStep(step, action)`         | Set or clear a single step                                                          |
+| `seq.clearSequence()`               | Clear all steps                                                                     |
+| `seq.clearStep(step)`               | Clear a specific step                                                               |
+| `seq.setBpm(bpm)`                   | Change sequencer tempo                                                              |
+| `seq.setPpqn(ppqn)`                 | Change sequencer resolution                                                         |
+| `seq.setSpeedFactor(factor)`        | Change playback speed by a continuous factor (1 = normal; <1 = slower; >1 = faster) |
+| `seq.getPayloadsForTick(tick)`      | Get payloads scheduled on a given tick                                              |
 
 ### Static Helpers
 
