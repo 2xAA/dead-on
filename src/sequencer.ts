@@ -44,7 +44,8 @@ export class DeadOnSequencer<P = any> {
 
   public bpm: number = 120;
   public ppqn: number = 24;
-  /** Speed division: 1 = normal, 2 = half-speed, etc. */
+  public speedFactor: number = 1;
+  /** (deprecated) integer division factor; use speedFactor */
   public division: number = 1;
 
   /**
@@ -63,7 +64,7 @@ export class DeadOnSequencer<P = any> {
     this.bpm = bpm ?? clock.bpm;
 
     this.barTicks = this.ppqn * 4;
-    this.effectiveBarTicks = this.barTicks / this.division;
+    this.effectiveBarTicks = this.barTicks / this.speedFactor;
     this.secPerTick = 60 / (this.bpm * this.ppqn);
     this.ticksPerStep = this.effectiveBarTicks / this.steps;
     this.sequence = Array(this.steps).fill(null);
@@ -107,7 +108,7 @@ export class DeadOnSequencer<P = any> {
   public setPpqn(ppqn: number) {
     this.ppqn = ppqn;
     this.barTicks = this.ppqn * 4;
-    this.effectiveBarTicks = this.barTicks / this.division;
+    this.effectiveBarTicks = this.barTicks / this.speedFactor;
     this.ticksPerStep = this.effectiveBarTicks / this.steps;
     this.secPerTick = 60 / (this.bpm * this.ppqn);
     this.rebuildSchedule();
@@ -119,18 +120,21 @@ export class DeadOnSequencer<P = any> {
   public setBpm(bpm: number) {
     this.bpm = bpm;
     this.secPerTick = 60 / (this.bpm * this.ppqn);
-    this.effectiveBarTicks = this.barTicks / this.division;
+    this.effectiveBarTicks = this.barTicks / this.speedFactor;
     this.ticksPerStep = this.effectiveBarTicks / this.steps;
     this.rebuildSchedule();
   }
 
   /**
-   * Slow down or speed up the sequencer by an integer factor.
-   * @param division 1 = normal, 2 = half-speed, etc.
+   * Change playback speed. Accepts any positive number:
+   *   1   = normal
+   *   <1  = slower (e.g. 0.5 = half-speed)
+   *   >1  = faster (e.g. 2   = double-speed)
    */
-  public setDivision(division: number) {
-    this.division = Math.max(1, Math.floor(division));
-    this.effectiveBarTicks = this.barTicks / this.division;
+  public setSpeedFactor(factor: number) {
+    this.speedFactor = factor > 0 ? factor : 1;
+    // Recalculate effective ticks and step duration
+    this.effectiveBarTicks = this.barTicks / this.speedFactor;
     this.ticksPerStep = this.effectiveBarTicks / this.steps;
     this.rebuildSchedule();
   }
