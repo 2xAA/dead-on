@@ -37,7 +37,6 @@ export interface StepAction<P = any> {
 export class DeadOnSequencer<P = any> {
   private sequence: Array<StepAction<P> | null>;
   private schedule = new Map<number, P[]>();
-  public barTicks: number;
   private effectiveBarTicks: number;
   private ticksPerStep: number;
   private secPerTick: number;
@@ -63,10 +62,11 @@ export class DeadOnSequencer<P = any> {
     this.ppqn = ppqn ?? clock.ppqn;
     this.bpm = bpm ?? clock.bpm;
 
-    this.barTicks = this.ppqn * 4;
-    this.effectiveBarTicks = this.barTicks / this.speedFactor;
+    // calculate tick spacing based on 96ppqn base grid (ppqn/4 = ticks per 16th) and current speed
     this.secPerTick = 60 / (this.bpm * this.ppqn);
-    this.ticksPerStep = this.effectiveBarTicks / this.steps;
+    this.ticksPerStep = this.ppqn / 4 / this.speedFactor;
+    // effective loop length in ticks = number of steps × ticks per step
+    this.effectiveBarTicks = this.steps * this.ticksPerStep;
     this.sequence = Array(this.steps).fill(null);
     this.rebuildSchedule();
   }
@@ -107,10 +107,9 @@ export class DeadOnSequencer<P = any> {
    */
   public setPpqn(ppqn: number) {
     this.ppqn = ppqn;
-    this.barTicks = this.ppqn * 4;
-    this.effectiveBarTicks = this.barTicks / this.speedFactor;
-    this.ticksPerStep = this.effectiveBarTicks / this.steps;
     this.secPerTick = 60 / (this.bpm * this.ppqn);
+    this.ticksPerStep = this.ppqn / 4 / this.speedFactor;
+    this.effectiveBarTicks = this.steps * this.ticksPerStep;
     this.rebuildSchedule();
   }
 
@@ -120,8 +119,8 @@ export class DeadOnSequencer<P = any> {
   public setBpm(bpm: number) {
     this.bpm = bpm;
     this.secPerTick = 60 / (this.bpm * this.ppqn);
-    this.effectiveBarTicks = this.barTicks / this.speedFactor;
-    this.ticksPerStep = this.effectiveBarTicks / this.steps;
+    this.ticksPerStep = this.ppqn / 4 / this.speedFactor;
+    this.effectiveBarTicks = this.steps * this.ticksPerStep;
     this.rebuildSchedule();
   }
 
@@ -133,9 +132,8 @@ export class DeadOnSequencer<P = any> {
    */
   public setSpeedFactor(factor: number) {
     this.speedFactor = factor > 0 ? factor : 1;
-    // Recalculate effective ticks and step duration
-    this.effectiveBarTicks = this.barTicks / this.speedFactor;
-    this.ticksPerStep = this.effectiveBarTicks / this.steps;
+    this.ticksPerStep = this.ppqn / 4 / this.speedFactor;
+    this.effectiveBarTicks = this.steps * this.ticksPerStep;
     this.rebuildSchedule();
   }
 
@@ -152,7 +150,8 @@ export class DeadOnSequencer<P = any> {
    * @param tick  DeadOn clock tick
    */
   public getPayloadsForTick(tick: number): P[] {
-    return this.schedule.get(tick % this.effectiveBarTicks) ?? [];
+    const idx = Math.floor(tick) % this.effectiveBarTicks;
+    return this.schedule.get(idx) ?? [];
   }
 
   /** Internal: rebuild the tick→payload map from `sequence`. */
