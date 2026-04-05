@@ -12,24 +12,22 @@ DeadOn is a drift-less, performance.now()–based clock for precision musical ti
 
 ## Table of Contents
 
-- [Why DeadOn?](#why-deadon)
-- [Installation](#installation)
-- [Basic Usage](#basic-usage)
-  - [Creating a Clock](#creating-a-clock)
-  - [Subscribing to Ticks](#subscribing-to-ticks)
-  - [Scheduling One-Off Callbacks](#scheduling-one-off-callbacks)
-- [API](#api)
-  - [`new DeadOnClock(opts)`](#new-deadonclockopts)
-  - [`clock.start()`](#clockstart)
-  - [`clock.stop()`](#clockstop)
-  - [`clock.setBpm(bpm)`](#clocksetbpmbpm)
-  - [`clock.setPpqn(ppqn)`](#clocksetppqnppqn)
-  - [`clock.on('tick', callback)`](#clockontick-callback)
-  - [`clock.off('tick', callback)`](#clockofftick-callback)
-  - [`clock.scheduleAt(callback, timeMs)`](#clockscheduleatcallback-timems)
-  - [`DeadOnSequencer<P>`](#deadonsequencerp)
-  - [Static Helpers](#static-helpers)
-- [License](#license)
+- [DeadOn](#deadon)
+  - [Table of Contents](#table-of-contents)
+  - [Why DeadOn?](#why-deadon)
+  - [Installation](#installation)
+  - [Basic Usage](#basic-usage)
+    - [Creating a Clock](#creating-a-clock)
+    - [Subscribing to Ticks](#subscribing-to-ticks)
+    - [Scheduling One-Off Callbacks](#scheduling-one-off-callbacks)
+  - [API](#api)
+    - [`new DeadOnClock(opts)`](#new-deadonclockopts)
+      - [Methods](#methods)
+  - [DeadOnSequencer](#deadonsequencer)
+    - [StepAction](#stepaction)
+    - [Methods](#methods-1)
+    - [Static Helpers](#static-helpers)
+  - [License](#license)
 
 ---
 
@@ -38,6 +36,7 @@ DeadOn is a drift-less, performance.now()–based clock for precision musical ti
 - **Drift-less scheduling:** Uses `performance.now()` for a reliable timebase.
 - **Configurable resolution:** Adjustable PPQN for any musical subdivision.
 - **Tunable lookahead & interval:** Balance scheduling ahead of time with responsiveness.
+- **Multiple scheduling backends:** Choose `"interval"` (default), `"worker"` (Web Worker), or `"audioWorklet"` (AudioWorklet) for the best timing trade-off for your environment.
 - **Lightweight:** No dependencies and minimal setup.
 
 ---
@@ -67,9 +66,11 @@ const clock = new DeadOnClock({
   lookahead: 50, // how far ahead to schedule in ms (default: 50)
   interval: 20, // main loop interval in ms (default: 20)
   audioContext: audioCtx, // optional AudioContext
+  scheduler: "interval", // "interval" (default) | "worker" | "audioWorklet"
 });
 
-clock.start();
+// start() is async when using "audioWorklet" due to the module loading
+await clock.start();
 ```
 
 ### Subscribing to Ticks
@@ -110,18 +111,19 @@ clock.scheduleAt(() => {
 
 Creates a new clock.
 
-| Option         | Type           | Default | Description                            |
-| -------------- | -------------- | ------- | -------------------------------------- |
-| `bpm`          | `number`       | `120`   | Beats per minute                       |
-| `ppqn`         | `number`       | `24`    | Pulses per quarter-note                |
-| `lookahead`    | `number` (ms)  | `50`    | How far ahead to schedule events       |
-| `interval`     | `number` (ms)  | `20`    | Main loop interval                     |
-| `audioContext` | `AudioContext` | `-`     | Optional for sample-accurate audioTime |
+| Option         | Type            | Default      | Description                                                                                                                             |
+| -------------- | --------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `bpm`          | `number`        | `120`        | Beats per minute                                                                                                                        |
+| `ppqn`         | `number`        | `24`         | Pulses per quarter-note                                                                                                                 |
+| `lookahead`    | `number` (ms)   | `50`         | How far ahead to schedule events                                                                                                        |
+| `interval`     | `number` (ms)   | `20`         | Main loop interval (used by `"interval"` and `"worker"` schedulers)                                                                     |
+| `audioContext` | `AudioContext`  | `-`          | Optional AudioContext. Auto-created when using `"audioWorklet"` if not provided                                                         |
+| `scheduler`    | `SchedulerType` | `"interval"` | `"interval"`: main-thread setTimeout loop. `"worker"`: Web Worker. `"audioWorklet"`: AudioWorklet for hardware-clocked, jitter-free timing |
 
 #### Methods
 
-- `clock.start()` → `void`  
-  Start the clock (no-op if already running).
+- `clock.start()` → `Promise<void>`  
+  Start the clock (no-op if already running). Async when using `"audioWorklet"` scheduler due to module loading; safe to not await for other schedulers.
 
 - `clock.stop()` → `void`  
   Stop the clock.

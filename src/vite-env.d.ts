@@ -1,4 +1,9 @@
-declare module "*.worklet.ts?inline" {
-  const url: string;
-  export default url;
+declare module "*?worker-inline" {
+  const source: string;
+  export default source;
+}
+
+declare module "*?worklet-inline" {
+  const dataUrl: string;
+  export default dataUrl;
 }
