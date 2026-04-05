@@ -13,8 +13,6 @@
     ],
   },
   "include": [
-    "src",
-    "src/deadon.ts",
-    "src/scheduler-processor.worklet.ts"
+    "src"
   ]
 }
